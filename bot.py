@@ -9,8 +9,8 @@ import os
 from datetime import datetime, timedelta
 
 # ---------- НАСТРОЙКИ ----------
-TOKEN = "vk1.a.vTPfIS1TGJ_b5_NGrdHq5l17NngZlHDxrvyzb-u_ziRDDjSORbhx7bqHghnuKkX_JfClzcQIqxp_c7wPmku8NxiMwFgfggRPWVQy41f-biZn31LMEWCQccYrXsOuMVV4i9B8ceVRguwe5GHJmmOugIL0u_glTDN2iD-iB5E1ELfGiGmovlLurL5zjSe3WRk8iSZn5uE1eDxjfAPs4Sx3yA"          # Токен сообщества VK
-GROUP_ID = 234372178                 # ID группы (число)
+TOKEN = "vk1.a.mE0SWCVEIIWRMBUC055DLAFOzcKsXMVzwjv3wRRJPDFo4U7aQPfF6xy6WCsrkDRMTcxyFFVzyQMhnR66FLYA44vhIEOAV5sprqEZ4NcjC3UYeIEuf1KJiUxo99A8j01bxCOLeSqF7eRsVkHu8ABqF7Dh6W-SPhjskQKRn-yB8Dw34H4XEcABoMcdwzPgJltjD7HNUT5VlM8avjCUGEnl1Q"          # Токен сообщества VK
+GROUP_ID = 236397367                 # ID группы (число)
 DATA_FILE = "data.json"              # Файл для хранения данных
 TARGET_SCREEN_NAMES = ["georgiy_gosha", "onereset"]  # Пользователи для упоминания в полночь
 
