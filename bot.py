@@ -29,6 +29,8 @@ target_user_ids = []
 #                      "routes": { "73p": {"laps":0, "pax":0}, "80": {"laps":0, "pax":0} } } }
 data = {}
 
+peer_id_for_midnight = None  # ID беседы для ночного отчёта
+
 # ---------- ЗАГРУЗКА / СОХРАНЕНИЕ ДАННЫХ ----------
 def load_data():
     global data
@@ -122,26 +124,24 @@ def format_activity():
 
 # ---------- СБРОС ДНЯ (В ПОЛНОЧЬ) ----------
 def reset_day():
-    global data
-    # Формируем отчёт перед сбросом
+    global data, peer_id_for_midnight
+    # Формируем отчёт
     report = format_activity()
-    
-    # Упоминания целевых пользователей
     mentions = " ".join([f"[id{uid}|@???]" for uid in target_user_ids])
     message = f"{mentions}\n\nСтатистика за сутки:\n{report}"
     
-    # Отправляем в беседу (peer_id нужно знать – можно сохранить ID первой беседы, куда писал бот)
-    # Для простоты будем отправлять во все известные peer_id? Но лучше в конкретную беседу.
-    # Предположим, бот работает только в одной беседе. Можно сохранять peer_id при первом сообщении.
-    # Здесь для примера отправим в беседу, сохранённую в глобальной переменной.
-    if hasattr(reset_day, "peer_id"):
-        vk.messages.send(
-            peer_id=reset_day.peer_id,
-            message=message,
-            random_id=0
-        )
+    # Отправляем, если известен peer_id
+    if peer_id_for_midnight is not None:
+        try:
+            vk.messages.send(
+                peer_id=peer_id_for_midnight,
+                message=message,
+                random_id=0
+            )
+        except Exception as e:
+            print(f"Не удалось отправить ночной отчёт: {e}")
     
-    # Сбрасываем данные
+    # Сброс данных
     for uid in data:
         data[uid]["current_route"] = None
         data[uid]["routes"]["73p"]["laps"] = 0
@@ -149,8 +149,6 @@ def reset_day():
         data[uid]["routes"]["80"]["laps"] = 0
         data[uid]["routes"]["80"]["pax"] = 0
     save_data()
-    
-    # Планируем следующий сброс
     schedule_midnight_reset()
 
 def schedule_midnight_reset():
@@ -271,7 +269,6 @@ def handle_message(event):
     else:
         welcome = "Используйте кнопки для управления.\nКоманда: круг [число] – добавить круг и пассажиров."
         send_message(peer_id, welcome, keyboard)
-
 
 # ---------- ЗАПУСК БОТА ----------
 def main():
