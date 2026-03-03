@@ -25,8 +25,8 @@ names_cache = {}
 # ID целевых пользователей (заполнятся при старте)
 target_user_ids = []
 
-# Данные: { user_id: { "name": "...", "current_route": None/"73p"/"80",
-#                      "routes": { "73p": {"laps":0, "pax":0}, "80": {"laps":0, "pax":0} } } }
+# Данные: { user_id: { "name": "...", "current_route": None/"73p"/"75"/"80",
+#                      "routes": { "73p": {"laps":0, "pax":0}, "75": {"laps":0, "pax":0}, "80": {"laps":0, "pax":0} } } }
 data = {}
 
 peer_id_for_midnight = None  # ID беседы для ночного отчёта
@@ -75,6 +75,7 @@ def ensure_user(user_id):
             "current_route": None,
             "routes": {
                 "73p": {"laps": 0, "pax": 0},
+                "75": {"laps": 0, "pax": 0},
                 "80": {"laps": 0, "pax": 0}
             }
         }
@@ -97,6 +98,19 @@ def format_activity():
     
     lines.append("")  
     
+    # Активные на 75
+    lines.append("Маршрут 75:")
+    active_75 = [(uid, u) for uid, u in data.items() if u["current_route"] == "75"]
+    if active_75:
+        for uid, u in active_75:
+            laps = u["routes"]["75"]["laps"]
+            pax = u["routes"]["75"]["pax"]
+            lines.append(f"{u['name']}, {laps} кругов, {pax} паксов.")
+    else:
+        lines.append("Машин на линии нет.")
+    
+    lines.append("") 
+    
     # Активные на 80
     lines.append("Маршрут 80:")
     active_80 = [(uid, u) for uid, u in data.items() if u["current_route"] == "80"]
@@ -115,6 +129,8 @@ def format_activity():
     total_73_pax = sum(u["routes"]["73p"]["pax"] for u in data.values())
     total_80_laps = sum(u["routes"]["80"]["laps"] for u in data.values())
     total_80_pax = sum(u["routes"]["80"]["pax"] for u in data.values())
+    total_75_laps = sum(u["routes"]["75"]["laps"] for u in data.values())
+    total_75_pax = sum(u["routes"]["75"]["pax"] for u in data.values())
     
     lines.append("Статистика за сутки:")
     lines.append(f"Маршрут 73р: {total_73_laps} кругов, {total_73_pax} паксов")
@@ -146,6 +162,8 @@ def reset_day():
         data[uid]["current_route"] = None
         data[uid]["routes"]["73p"]["laps"] = 0
         data[uid]["routes"]["73p"]["pax"] = 0
+        data[uid]["routes"]["75"]["laps"] = 0
+        data[uid]["routes"]["75"]["pax"] = 0
         data[uid]["routes"]["80"]["laps"] = 0
         data[uid]["routes"]["80"]["pax"] = 0
     save_data()
@@ -188,6 +206,7 @@ def send_message(peer_id, message, keyboard=None):
 def create_keyboard():
     keyboard = VkKeyboard(one_time=False)
     keyboard.add_button("Выйти на 73р", color=VkKeyboardColor.PRIMARY)
+    keyboard.add_button("Выйти на 75", color=VkKeyboardColor.PRIMARY)
     keyboard.add_button("Выйти на 80", color=VkKeyboardColor.PRIMARY)
     keyboard.add_line()
     keyboard.add_button("Актив", color=VkKeyboardColor.SECONDARY)
@@ -226,6 +245,16 @@ def handle_message(event):
         save_data()
         reply = "Вы вышли на маршрут 73р." if old_route is None else f"Вы переключились на маршрут 73р (ранее были на {old_route})."
         send_message(peer_id, reply, keyboard)
+    
+    
+    if text == "Выйти на 75":
+        old_route = data[user_id]["current_route"]
+        data[user_id]["current_route"] = "75"
+        save_data()
+        reply = "Вы вышли на маршрут 75." if old_route is None else f"Вы переключились на маршрут 75 (ранее были на {old_route})."
+        send_message(peer_id, reply, keyboard)
+
+
 
     elif text == "Выйти на 80":
         old_route = data[user_id]["current_route"]
