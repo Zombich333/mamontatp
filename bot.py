@@ -64,7 +64,7 @@ def get_user_name(user_id):
     except:
         return f"id{user_id}"
 
-# ---------- ИНИЦИАЛИЗАЦИЯ ПОЛЬЗОВАТЕЛЯ В ДАННЫХ ----------
+
 def ensure_user(user_id):
     if user_id not in data:
         name = get_user_name(user_id)
@@ -78,7 +78,7 @@ def ensure_user(user_id):
         }
         save_data()
 
-# ---------- ФОРМИРОВАНИЕ ОТЧЁТА "АКТИВ" ----------
+
 def format_activity():
     lines = []
     
@@ -93,7 +93,7 @@ def format_activity():
     else:
         lines.append("Машин на линии нет.")
     
-    lines.append("")  # пустая строка для разделения
+    lines.append("")  
     
     # Активные на 80
     lines.append("Маршрут 80:")
@@ -106,9 +106,9 @@ def format_activity():
     else:
         lines.append("Машин на линии нет.")
     
-    lines.append("")  # пустая строка
+    lines.append("")  
     
-    # Статистика за сутки по всем
+
     total_73_laps = sum(u["routes"]["73p"]["laps"] for u in data.values())
     total_73_pax = sum(u["routes"]["73p"]["pax"] for u in data.values())
     total_80_laps = sum(u["routes"]["80"]["laps"] for u in data.values())
@@ -198,45 +198,44 @@ def create_keyboard():
 
 # ---------- ОБРАБОТКА СООБЩЕНИЙ ----------
 def handle_message(event):
+    global peer_id_for_midnight
     user_id = event.user_id
     peer_id = event.peer_id
-    text = event.text.strip()
+    raw_text = event.text.strip()
     
-    # Игнорируем свои сообщения
-    if user_id < 0:  # отрицательные ID могут быть у групп
+    # Удаляем упоминание бота из текста (если оно есть)
+    # Примеры: "[club234372178|@Мамонтовское АТП Бот] Актив" -> "Актив"
+    #          "@club234372178 Актив" -> "Актив"
+    text = re.sub(r'^\[club\d+\|[^\]]+\]\s*', '', raw_text)
+    text = re.sub(r'^@club\d+\s*', '', text)
+    text = text.strip()
+
+    # Игнорируем сообщения от групп (чтобы бот не отвечал сам себе)
+    if user_id < 0:
         return
-    
-    # Сохраняем peer_id для ночного отчёта (если ещё не сохранён)
-    if not hasattr(reset_day, "peer_id"):
-        reset_day.peer_id = peer_id
-    
-    # Убедимся, что пользователь есть в данных
+
+    # Запоминаем peer_id для ночного отчёта
+    if peer_id_for_midnight is None:
+        peer_id_for_midnight = peer_id
+
     ensure_user(user_id)
-    
-    # Клавиатура для ответа
     keyboard = create_keyboard()
-    
-    # Обработка команд (текст кнопок или текстовая команда)
+
+    # Обработка команд (теперь text уже без упоминания)
     if text == "Выйти на 73р":
         old_route = data[user_id]["current_route"]
         data[user_id]["current_route"] = "73p"
         save_data()
-        if old_route is None:
-            reply = "Вы вышли на маршрут 73р."
-        else:
-            reply = f"Вы переключились на маршрут 73р (ранее были на {old_route})."
+        reply = "Вы вышли на маршрут 73р." if old_route is None else f"Вы переключились на маршрут 73р (ранее были на {old_route})."
         send_message(peer_id, reply, keyboard)
-    
+
     elif text == "Выйти на 80":
         old_route = data[user_id]["current_route"]
         data[user_id]["current_route"] = "80"
         save_data()
-        if old_route is None:
-            reply = "Вы вышли на маршрут 80."
-        else:
-            reply = f"Вы переключились на маршрут 80 (ранее были на {old_route})."
+        reply = "Вы вышли на маршрут 80." if old_route is None else f"Вы переключились на маршрут 80 (ранее были на {old_route})."
         send_message(peer_id, reply, keyboard)
-    
+
     elif text == "Сойти с маршрута":
         if data[user_id]["current_route"] is None:
             reply = "Вы и так не на линии."
@@ -245,39 +244,34 @@ def handle_message(event):
             save_data()
             reply = "Вы сошли с маршрута."
         send_message(peer_id, reply, keyboard)
-    
+
     elif text == "Актив":
         activity = format_activity()
         send_message(peer_id, activity, keyboard)
-    
+
     elif text.lower().startswith("круг"):
-        # Парсим количество паксов
         parts = text.split()
-        pax = 0
-        if len(parts) >= 2 and parts[1].isdigit():
-            pax = int(parts[1])
-        
-        # Проверяем, на линии ли пользователь
+        pax = int(parts[1]) if len(parts) >= 2 and parts[1].isdigit() else 0
+
         current_route = data[user_id]["current_route"]
         if current_route is None:
             reply = "Вы не на линии. Сначала выйдите на маршрут."
             send_message(peer_id, reply, keyboard)
             return
-        
-        # Увеличиваем счётчики
+
         data[user_id]["routes"][current_route]["laps"] += 1
         data[user_id]["routes"][current_route]["pax"] += pax
         save_data()
-        
+
         laps_now = data[user_id]["routes"][current_route]["laps"]
         pax_now = data[user_id]["routes"][current_route]["pax"]
         reply = f"Круг засчитан! Теперь у вас на маршруте {current_route}: {laps_now} кругов, {pax_now} паксов."
         send_message(peer_id, reply, keyboard)
-    
+
     else:
-        # Любое другое сообщение – показываем клавиатуру с приветствием
         welcome = "Используйте кнопки для управления.\nКоманда: круг [число] – добавить круг и пассажиров."
         send_message(peer_id, welcome, keyboard)
+
 
 # ---------- ЗАПУСК БОТА ----------
 def main():
@@ -301,4 +295,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
