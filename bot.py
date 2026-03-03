@@ -33,10 +33,18 @@ data = {}
 def load_data():
     global data
     if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            # Преобразуем ключи из строк в int (JSON хранит ключи как строки)
-            data = {int(k): v for k, v in data.items()}
+        try:
+            with open(DATA_FILE, "r", encoding="utf-8") as f:
+                content = f.read().strip()
+                if content:  # если файл не пуст
+                    data = json.loads(content)
+                    # Преобразуем ключи из строк в int
+                    data = {int(k): v for k, v in data.items()}
+                else:
+                    data = {}  # файл пуст – начинаем с пустого словаря
+        except (json.JSONDecodeError, ValueError) as e:
+            print(f"Ошибка чтения {DATA_FILE}: {e}. Используем пустые данные.")
+            data = {}
     else:
         data = {}
 
