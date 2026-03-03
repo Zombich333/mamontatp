@@ -267,8 +267,8 @@ def handle_message(event):
         send_message(peer_id, reply, keyboard)
 
     else:
-        welcome = "Используйте кнопки для управления.\nКоманда: круг [число] – добавить круг и пассажиров."
-        send_message(peer_id, welcome, keyboard)
+        # Ничего не делаем – игнорируем нераспознанные сообщения
+        pass
 
 # ---------- ЗАПУСК БОТА ----------
 def main():
